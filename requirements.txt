@@ -1,0 +1,6 @@
+flask
+pandas
+python-dotenv  # Para variáveis de ambiente, útil para segurança
+flake8         # Para análise de código
+pytest         # Para testes automatizados
+bandit         # Para análise de segurança
