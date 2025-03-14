@@ -1,6 +1,6 @@
 flask
 pandas
-python-dotenv  # Para variaveis de ambiente, util para seguranca
-flake8         # Para analise de codigo
-pytest         # Para testes automatizados
-bandit         # Para analise de seguranca
+python-dotenv
+flake8
+pytest
+bandit
