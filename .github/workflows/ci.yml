@@ -1,0 +1,34 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+     - dev
+  pull_request:
+    branches: 
+     - dev
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v3
+
+    - name: Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: Instalar dependências
+      run: pip install -r requirements.txt
+
+    - name: Analisar código com Flake8
+      run: flake8 backend/
+
+    - name: Executar testes com Pytest
+      run: pytest tests/
+
+    - name: Verificar segurança com Bandit
+      run: bandit -r backend/

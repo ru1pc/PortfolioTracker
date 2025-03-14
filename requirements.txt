@@ -1,0 +1,6 @@
+flask
+pandas
+python-dotenv
+flake8
+pytest
+bandit
