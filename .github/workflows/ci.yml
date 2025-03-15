@@ -3,17 +3,17 @@ name: CI Pipeline
 on:
   push:
     branches:
-     - dev
+     - develop
   pull_request:
     branches: 
-     - dev
+     - develop
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout do código
+    - name: Checkout do cï¿½digo
       uses: actions/checkout@v3
 
     - name: Configurar Python
@@ -21,14 +21,14 @@ jobs:
       with:
         python-version: "3.10"
 
-    - name: Instalar dependências
+    - name: Instalar dependï¿½ncias
       run: pip install -r requirements.txt
 
-    # - name: Analisar código com Flake8
+    # - name: Analisar cï¿½digo com Flake8
     #  run: flake8 backend/
 
     # - name: Executar testes com Pytest
     #  run: pytest tests/
 
-    # - name: Verificar segurança com Bandit
+    # - name: Verificar seguranï¿½a com Bandit
     #  run: bandit -r backend/
