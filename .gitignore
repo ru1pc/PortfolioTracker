@@ -5,7 +5,7 @@
 
 data/*
 reports/*
-db/*
+db /*
 
 
 # User-specific files
