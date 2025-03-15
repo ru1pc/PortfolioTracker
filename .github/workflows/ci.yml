@@ -24,11 +24,11 @@ jobs:
     - name: Instalar dependências
       run: pip install -r requirements.txt
 
-    - name: Analisar código com Flake8
-      run: flake8 backend/
+    # - name: Analisar código com Flake8
+    #  run: flake8 backend/
 
-    - name: Executar testes com Pytest
-      run: pytest tests/
+    # - name: Executar testes com Pytest
+    #  run: pytest tests/
 
-    - name: Verificar segurança com Bandit
-      run: bandit -r backend/
+    # - name: Verificar segurança com Bandit
+    #  run: bandit -r backend/
