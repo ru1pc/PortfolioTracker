@@ -1,15 +1,13 @@
-﻿from utils.logger import logger 
-import os
+﻿import os
 import sys
 import csv
 import pandas as pd
 import importlib
 
-
- # Add the parent directory of 'modules' to the Python path
+# Add the parent directory of 'backend' to the Python path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
-
+from utils.logger import logger
 
 def detect_delimiter(file_path):
     with open(file_path, 'r') as file:
@@ -18,16 +16,7 @@ def detect_delimiter(file_path):
         return dialect.delimiter
 
 def normalize_data(df, platform):
-    """
-    Normalize the DataFrame to a standard format.
-
-    Args:
-    - df (DataFrame): The raw data.
-    - platform (str): The platform name.
-
-    Returns:
-    - DataFrame: Normalized data.
-    """
+  
     expected_columns = ["Date", "Time(UTC)", 'Asset','Type','Price','Amount','Cost','Fee','Fee Coin','Fee Cost','Currency']  
     missing_columns = [col for col in expected_columns if col not in df.columns]
 
@@ -40,10 +29,8 @@ def normalize_data(df, platform):
     return df
 
 
-def load_all_data(base_path):
-   
-    # Load and process all platform data.
-
+def load_all_data(base_path="data"):
+  
     if not os.path.exists(base_path):
         logger.error(f"❌ Base path '{base_path}' does not exist.")
         return None
@@ -51,6 +38,7 @@ def load_all_data(base_path):
     all_data = []
     
     for platform in os.listdir(base_path):
+       
         platform_path = os.path.join(base_path, platform)
         if not os.path.isdir(platform_path):
             logger.warning(f"⚠️ Skipping invalid platform folder: {platform_path}")

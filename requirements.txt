@@ -4,3 +4,4 @@ python-dotenv
 flake8
 pytest
 bandit
+openpyxl
