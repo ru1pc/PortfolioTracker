@@ -56,9 +56,6 @@ def load_all_data(base_path="data"):
         return None
 
 def load_platform_data(platform_folder, platform):
-    """
-    Load all data files from a platform's folder.
-    """
 
     dataframes = []
     

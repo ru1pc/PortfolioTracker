@@ -28,14 +28,6 @@ def clean_data(df):
 
     df[['Date', 'Time(UTC)']] = df['Date'].astype(str).str.split(' ', expand=True)
     
-    #Extract year and month for filtering
-    df['Date'] = pd.to_datetime(df['Date'])
-    df = df.assign(
-        Year=df['Date'].dt.year,
-        Month=df['Date'].dt.month,
-        Date=df['Date'].dt.date
-    )
-    
     df[['Asset','Currency']] = df['Asset'].str.extract(pattern)
 
     #df = df.astype({'Asset': 'category', 'Price': 'float64', 'Amount':'float64', 'Cost': 'float64', 'Fee': 'float64','Platform':'category'})

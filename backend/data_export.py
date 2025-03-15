@@ -11,7 +11,15 @@ def ensure_directory_exists(output_dir):
 def export_to_csv(df, output_dir, merge=False):
 
     ensure_directory_exists(output_dir)
-
+    
+    #Extract year and month for filtering
+    df['Date'] = pd.to_datetime(df['Date'])
+    df = df.assign(
+        Year=df['Date'].dt.year,
+        Month=df['Date'].dt.month,
+        Date=df['Date'].dt.date
+    )
+    
     desired_order = ['Date', 'Time(UTC)', 'Asset', 'Type', 'Price', 'Amount', 'Cost', 'Fee', 'Fee Coin',
                      'Fee Cost', 'Currency','Platform','Year','Month']
     
