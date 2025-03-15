@@ -9,9 +9,8 @@ on:
      - develop
 
 jobs:
-  test:
+  setup:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout do codigo
       uses: actions/checkout@v3
@@ -23,3 +22,9 @@ jobs:
 
     - name: Instalar dependencias
       run: pip install -r requirements.txt
+  test:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Simple tests
+          run: pytest tests/
+
