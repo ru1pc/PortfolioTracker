@@ -37,13 +37,9 @@ def PortfolioMetrics_overview(portfolio,allocation_view):
 
         with performance:
             # TODO: sum balances of portfolios group by date
-            history_data = {
-                    'Date': ['17 Mar', '4:00 AM', '8:00 AM', '12:00 PM', '4:00 PM', '8:00 PM'],
-                    'Value': [82000, 83000, 83500, 84000, 84500, 85000]
-                }
-            history_df = pd.DataFrame(history_data)
+            history_data = db.get_history_overview()
             fig_history = px.area(
-                history_df,
+                history_data,
                 x='Date',
                 y='Value',
                 title='Performance',
@@ -186,9 +182,6 @@ def menu(portfolios_latest_data):
 
 portfolios_latest_data = db.get_portfolio_latest_data()
 #print(portfolios_latest_data)
-
-default= db.get_transactions_by_portfolio("default")
-
 
 menu(portfolios_latest_data)
 

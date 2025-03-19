@@ -63,7 +63,13 @@ GET_PORTFOLIO_LATEST_DATA = """
     ) latest ON p.portfolio = latest.portfolio AND p.date = latest.max_date;
 """
 
-GET_PORTFOLIOS = "SELECT DISTINCT portfolio FROM portfolio"
+GET_HISTORY_OVERVIEW = """
+    SELECT date as Date, SUM(balance) AS Value
+    FROM portfolio
+    GROUP BY date
+    ORDER BY date;
+"""
+GET_PORTFOLIOS_LIST = "SELECT DISTINCT portfolio FROM portfolio"
 
 GET_ALL_TRANSACTIONS = "SELECT * FROM asset_transaction"
 

@@ -8,6 +8,18 @@ import backend.data_persistence as dper
 
 DATABASE_PATH = dper.DATABASE_PATH
 
+def get_history_overview():
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)     
+        overview_history=  pd.read_sql_query(query.GET_HISTORY_OVERVIEW,conn)
+        logger.info(f"📂 get_history_overview()")
+        return overview_history
+    except Exception as e:
+        logger.error(f"Failed to load data from database: {e}")
+    finally:
+        conn.close()
+
+
 def get_all_transactions():
     try:
         conn = sqlite3.connect(DATABASE_PATH)     
