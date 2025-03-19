@@ -17,7 +17,7 @@ def detect_delimiter(file_path):
 
 def normalize_data(df, platform):
   
-    expected_columns = ["Date", "Time(UTC)", 'Asset','Type','Price','Amount','Cost','Fee','Fee Coin','Fee Cost','Currency']  
+    expected_columns = ["Date", "Time_UTC_", 'Asset','Type','Action','Price','Amount','Cost','Fee','Fee_Coin','Fee_Cost','Currency']  
     missing_columns = [col for col in expected_columns if col not in df.columns]
 
     if missing_columns:
@@ -27,7 +27,6 @@ def normalize_data(df, platform):
 
     df["Platform"] = platform  
     return df
-
 
 def load_all_data(base_path="data"):
   
@@ -45,18 +44,17 @@ def load_all_data(base_path="data"):
             continue
 
         if os.path.isdir(platform_path):
-            print(f"🔍 Processing data from {platform}...")
+            logger.info(f"🔍 Processing data from {platform}...")
             platform_data = load_platform_data(platform_path, platform)
             all_data.extend(platform_data)
 
     if all_data:
-        return pd.concat(all_data, ignore_index=True)
+        return pd.concat(all_data, ignore_index=True,sort=True)
     else:
         logger.warning("⚠️ No data was loaded from any platform.")
         return None
 
 def load_platform_data(platform_folder, platform):
-
     dataframes = []
     
     # check if 'modules' exists
@@ -90,5 +88,5 @@ def load_platform_data(platform_folder, platform):
             dataframes.append(df)
         else:
             logger.warning(f"⚠️ {platform} do not have 'clean_data' function")
-
+    
     return dataframes

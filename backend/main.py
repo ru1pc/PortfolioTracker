@@ -4,60 +4,50 @@ import sys, os
  # Add the parent directory of 'modules' to the Python path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
-from backend.data_processing import load_all_data
-from backend.data_export import export_to_csv
-from backend.data_persistence import initialize_db,save_to_db,check_db
+import backend.data_processing as dp
+import backend.data_export as de
+import backend.data_persistence as dper 
+import backend.database as db 
+
 from utils.logger import logger
 
-from backend.queries import (
-    calculate_total_profit, 
-    calculate_realised_profit, 
-    calculate_total_invested, 
-    calculate_unrealised_profit, 
-    calculate_average_buy_price, 
-    calculate_balance
-)
-
-
-def asset_metrics(asset_name):
-    current_price = 30000  # Exemplo de preço atual do BTC
-
-    print(f"📊 Metrics for {asset_name}:")
-    print(f"- Total Profit: ${calculate_total_profit(asset_name, current_price):.2f}")
-    print(f"- Realised Profit: ${calculate_realised_profit(asset_name):.2f}")
-    print(f"- Total Invested: ${calculate_total_invested(asset_name):.2f}")
-    print(f"- Unrealised Profit: ${calculate_unrealised_profit(asset_name, current_price):.2f}")
-    print(f"- Average Buy Price: ${calculate_average_buy_price(asset_name):.2f}")
-    print(f"- Balance: ${calculate_balance(asset_name, current_price):.2f}")
-
+def get_current_prices():
+     current_prices = {
+        "ADA": 0.70,
+        "ETH": 1914.0,
+        "XRP": 0.50
+    }
+     return current_prices
 
 def main(data, output, merge):
-    try:
-        df = load_all_data(data)
-
+        
+        
+    #try:
+        df = dp.load_all_data(data)
         if df is not None:
-            save_to_db(df)
+            current_prices=get_current_prices()
+            dper.initialize_db()
+            dper.save_to_db(df,portfolio="TESTE2",asset_prices=current_prices)
+            #dper.print_table('asset_transaction')
             logger.info("✅ Data saved to database.")
         else:
             logger.warning("⚠️ No data was loaded.")
 
-        if df is not None:
-            logger.info("📊 Data processing complete. Exporting data...")
-            export_to_csv(df, output, merge)
-        else:
-            logger.warning("No data was loaded.")
+    #    if df is not None:
+    #        logger.info("📊 Data processing complete. Exporting data...")
+    #        export_to_csv(df, output, merge)
+    #    else:
+    #        logger.warning("No data was loaded.")
 
-    except Exception as e:
-        logger.error(f"❌ An error occurred: {e}")
+    #except Exception as e:
+    #    logger.error(f"❌ An error occurred: {e}")
 
-    initialize_db(df)
 
-    asset_metrics("BTC")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process and export investment data.")
+    parser = argparse.ArgumentParser(description="Management my investments.")
     parser.add_argument("--data", default="data", help="Path to the input data folder")
-    parser.add_argument("--output", default="reports", help="Path for outputs")
+    parser.add_argument("--output", default="reports", help="Generate reports in the output folder")
     parser.add_argument("--merge", action='store_true', help="Merge all data in one file")
     args = parser.parse_args()
 
