@@ -11,7 +11,7 @@ import backend.database as db
 
 st.set_page_config(page_title="Portfolio Tracker", layout="wide")
 
-df_alltransactions = db.get_all_transactions()
+
 
 def metricas_portfolio(portfolio):
     st.subheader(portfolio['portfolio'])
@@ -25,75 +25,39 @@ def metricas_portfolio(portfolio):
     with unrealised_profit:
         st.metric("Unrealised Profit", f"${portfolio['unrealised_profit']:,.2f}")
 
-def PortfolioMetrics_overview(portfolio,allocation_view):
-    
-    metricas_portfolio(portfolio)
-    
-    chart_tab, transaction_tab = st.tabs(["Charts", "Transactions"])
-
-    with chart_tab:
-
-        performance,allocation= st.columns(2)
-
-        with performance:
-            # TODO: sum balances of portfolios group by date
-            history_data = db.get_history_overview()
-            fig_history = px.area(
-                history_data,
-                x='Date',
-                y='Value',
-                title='Performance',
-                labels={'Date': '', 'Value': ''},
-                template='plotly_white'  # Optional: Use a clean theme
-            )       
-            fig_history.update_layout(width=600, height=400)
-            st.plotly_chart(fig_history, use_container_width=True)
-
-        with allocation:
-            # TODO: get_assets holdings / overview_balance
-            if allocation_view =="Asset":
-                allocation_data = {
-                    'Asset': ['BTC'],
-                    'Percentage': [100]
-                }
-                allocation_df = pd.DataFrame(allocation_data)
-                fig_allocation = px.pie(allocation_df, values='Percentage', names='Asset', title='Assets')
-            elif allocation_view == "Portfolio":
-                # TODO: get transactions group by asset , sum(asset holdings) / overview_balance group by portfolio?
-                allocation_data = {
-                    'Portfolio': ['Portfolio1'],
-                    'Percentage': [100]
-                }
-                allocation_df = pd.DataFrame(allocation_data)
-                fig_allocation = px.pie(allocation_df, values='Percentage', names='Portfolio', title='Portfolios')
-            elif allocation_view == "Asset Class":
-                # TODO: get transactions group by asset , sum(asset holdings) / overview_balance group by portfolio?
-                allocation_data = {
-                    'Type': ['Crypto'],
-                    'Percentage': [100]
-                }
-                allocation_df = pd.DataFrame(allocation_data)
-                fig_allocation = px.pie(allocation_df, values='Percentage', names='Type', title='Asset class')
-            else:
-                # TODO: get transactions group by asset , sum(asset holdings) / overview_balance group by platform?
-                allocation_data = {
-                    'Platform': ['Binance'],
-                    'Percentage': [100]
-                }
-                allocation_df = pd.DataFrame(allocation_data)
-                fig_allocation = px.pie(allocation_df, values='Percentage', names='Platform', title='Platform')
-            st.plotly_chart(fig_allocation, use_container_width=True)
-
-        st.subheader("Holdings")
-        df_asset_metrics = db.get_assets()
-        st.dataframe(df_asset_metrics,hide_index=True)
 
 
-    with transaction_tab:
-        st.subheader("Asset Transactions")
-        st.dataframe(df_alltransactions,hide_index=True)
+def performance_chart(portfolio_name):
+    if portfolio_name == "Overview":
+        history_data = db.get_history_overview()
+    else:
+        history_data = db.get_portfolio_history(portfolio_name)
+    fig_history = px.area(
+        history_data,
+        x='Date',
+        y='Value',
+        title='Performance',
+        labels={'Date': '', 'Value': ''},
+        template='plotly_white'  # Optional: Use a clean theme
+    )       
+    fig_history.update_layout(width=600, height=400)
+    fig_history.update_traces(mode="markers+lines", hovertemplate="Date: %{x|%Y-%m-%d}<br>Balance: $%{y:.2f}")
+    st.plotly_chart(fig_history, use_container_width=True)
 
-def PortfolioMetrics(portfolio):
+def allocation_chart(portfolio_name,allocation_view):
+    if portfolio_name == "Overview":
+        if not allocation_view:
+            allocation_view = "asset"
+        allocation_view = allocation_view.lower()
+        allocation_df = db.get_allocation_by(allocation_view)
+        fig_allocation = px.pie(allocation_df, values=allocation_df['total_allocation'], names=allocation_df[allocation_view], title=f"{allocation_view.capitalize()}s")    
+    else:
+        allocation_df = db.get_holdings(portfolio_name)
+        fig_allocation = px.pie(allocation_df, values="Balance", names='Asset', title='Assets')
+
+    st.plotly_chart(fig_allocation, use_container_width=True)
+
+def PortfolioMetrics(portfolio,allocation_view):
     
     metricas_portfolio(portfolio)
 
@@ -104,47 +68,29 @@ def PortfolioMetrics(portfolio):
         performance,allocation= st.columns(2)
 
         with performance:
-            ## TODO: select date, balance from portfolio where portfolio = portfolio
-            history_data = {
-                    'Date': ['17 Mar', '4:00 AM', '8:00 AM', '12:00 PM', '4:00 PM', '8:00 PM'],
-                    'Value': [82000, 83000, 83500, 84000, 84500, 85000]
-                }
-            history_df = pd.DataFrame(history_data)
-            fig_history = px.area(
-                history_df,
-                x='Date',
-                y='Value',
-                title='Performance',
-                labels={'Date': '', 'Value': ''},
-                template='plotly_white'  # Optional: Use a clean theme
-            )       
-            fig_history.update_layout(width=600, height=400)
-            st.plotly_chart(fig_history, use_container_width=True)
-
+            performance_chart(portfolio['portfolio'])
         with allocation:
-                # TODO: get assets by portfolio , asset_balance / portfolio_balance * 100%
-                allocation_data = {
-                    'Asset': ['BTC'],
-                    'Percentage': [100]
-                }
-                allocation_df = pd.DataFrame(allocation_data)
-                fig_allocation = px.pie(allocation_df, values='Percentage', names='Asset', title='Assets')
-        
-                st.plotly_chart(fig_allocation, use_container_width=True)
+            allocation_chart(portfolio['portfolio'],allocation_view)
 
-        st.subheader("Holdings")
-        # TODO: get_asset_by_portfolio
-        df_asset_metrics = db.get_asset()
+        if portfolio['portfolio'] == "Overview":
+            df_asset_metrics = db.get_assets()
+        else:
+            df_asset_metrics = db.get_holdings(portfolio['portfolio'])
+        st.subheader(f"Holdings ({len(df_asset_metrics)})")
         st.dataframe(df_asset_metrics,hide_index=True)
 
 
     with transaction_tab:
-        # TODO: get transactions by portfolio
-        st.subheader("Asset Transactions")
-        st.dataframe(df_alltransactions,hide_index=True)
+        if portfolio['portfolio'] == "Overview":
+            transactions = db.get_all_transactions()
+        else:
+            transactions = db.get_transactions_by_portfolio(portfolio['portfolio'])
+        st.subheader(f"Asset Transactions ({len(transactions)})")
+        st.dataframe(transactions,hide_index=True)
 
-def menu(portfolios_latest_data):
+def menu():
 
+    portfolios_latest_data = db.get_portfolio_latest_data()
     overview = {
         "portfolio": "Overview",
         "total_invested": portfolios_latest_data["total_invested"].sum(),
@@ -155,22 +101,20 @@ def menu(portfolios_latest_data):
     
     default_focus=True
     portfolio_focus=overview
+    allocation_view = "asset"
     st.sidebar.button(f"**Overview**",type='primary')
-    allocation_view = st.sidebar.radio("Alocation by", ["Asset", "Portfolio","Asset Class", "Platform"],index=None)
+    allocation_view = st.sidebar.radio("Alocation by", ["Asset", "Portfolio","Type", "Platform"],index=None)
     
     
-    st.sidebar.header(f"My Portfolios({len(portfolios_latest_data['portfolio'])})")
+    st.sidebar.header(f"My Portfolios ({len(portfolios_latest_data['portfolio'])})")
 
     for _, portfolio in portfolios_latest_data.iterrows():
         if st.sidebar.button(f"**{portfolio['portfolio']}** *({portfolio['balance']:,.2f})*",type='tertiary'):
             default_focus=False
             portfolio_focus = portfolio
         
-    if default_focus:
-        PortfolioMetrics_overview(portfolio_focus,allocation_view)
-    else:
-        PortfolioMetrics(portfolio_focus)
-    
+    PortfolioMetrics(portfolio_focus,allocation_view)
+   
     st.sidebar.divider()
 
     if st.sidebar.button("+ Create Portfolio"):
@@ -180,12 +124,4 @@ def menu(portfolios_latest_data):
             portfolio_list = portfolio_list.append(new_portfolio, ignore_index=True)
             st.success(f"Portfolio '{new_portfolio_name}' created!")
 
-portfolios_latest_data = db.get_portfolio_latest_data()
-#print(portfolios_latest_data)
-
-menu(portfolios_latest_data)
-
-#dummy(allocation_view)
-
-
-    
+menu()

@@ -52,6 +52,91 @@ CREATE TABLE IF NOT EXISTS current_prices  (
 DELETE_ASSET_PRICE="""
     DELETE FROM current_prices;
 """
+GET_ALLOCATION_BY_ASSET="""
+WITH asset_summary AS (
+    SELECT
+        asset,
+        SUM(CASE WHEN action = 'BUY' THEN amount ELSE -amount END) AS amount_holdings
+    FROM asset_transaction
+    GROUP BY asset
+),
+current_values AS (
+    SELECT
+        a.asset,
+        a.amount_holdings,
+        c.current_price,
+        a.amount_holdings * c.current_price AS allocation
+    FROM asset_summary a
+    JOIN
+        current_prices c
+    ON
+        a.asset = c.asset
+)
+SELECT
+    asset,
+    SUM(allocation) AS total_allocation
+FROM current_values
+GROUP BY asset
+ORDER BY total_allocation DESC;
+"""
+
+GET_ALLOCATION_BY_PORTFOLIO="""
+    WITH latest_portfolio AS (
+        SELECT portfolio, MAX(date) as latest_date
+        FROM portfolio
+        GROUP BY portfolio
+    ),
+    filtered_portfolio AS (
+        SELECT
+            p.portfolio,
+            p.balance
+        FROM portfolio p
+        JOIN
+            latest_portfolio lp
+        ON
+            p.portfolio = lp.portfolio AND p.date = lp.latest_date
+    ),
+    total_balance AS (
+        SELECT
+            SUM(balance) AS total_portfolios
+        FROM filtered_portfolio
+    )
+    SELECT
+        fp.portfolio,
+        fp.balance,
+        ROUND((fp.balance / tb.total_portfolios) * 100, 2) AS total_allocation
+    FROM filtered_portfolio fp
+    JOIN
+        total_balance tb ON 1=1
+    ORDER BY total_allocation DESC;
+"""
+
+GET_ALLOCATION="""
+    WITH asset_summary AS (
+        SELECT 
+            {filter}, 
+            asset, 
+            SUM(CASE WHEN action = 'BUY' THEN amount ELSE -amount END) AS amount_holdings
+        FROM asset_transaction
+        GROUP BY {filter}, asset
+    ),
+    current_values AS (
+        SELECT 
+            a.{filter}, 
+            a.asset, 
+            a.amount_holdings, 
+            c.current_price, 
+            a.amount_holdings * c.current_price AS allocation
+        FROM asset_summary a
+        JOIN current_prices c ON a.asset = c.asset
+    )
+    SELECT 
+        {filter}, 
+        SUM(allocation) AS total_allocation
+    FROM current_values
+    GROUP BY {filter}
+    ORDER BY total_allocation DESC;
+"""
 
 GET_PORTFOLIO_LATEST_DATA = """
     SELECT p.*
@@ -62,6 +147,12 @@ GET_PORTFOLIO_LATEST_DATA = """
         GROUP BY portfolio
     ) latest ON p.portfolio = latest.portfolio AND p.date = latest.max_date;
 """
+GET_HISTORY_BY_PORTFOLIO = """
+    SELECT date as Date, balance AS Value
+    FROM portfolio
+    WHERE portfolio = :portfolio
+    ORDER BY date;
+"""
 
 GET_HISTORY_OVERVIEW = """
     SELECT date as Date, SUM(balance) AS Value
@@ -69,11 +160,44 @@ GET_HISTORY_OVERVIEW = """
     GROUP BY date
     ORDER BY date;
 """
+
 GET_PORTFOLIOS_LIST = "SELECT DISTINCT portfolio FROM portfolio"
 
 GET_ALL_TRANSACTIONS = "SELECT * FROM asset_transaction"
 
 GET_ASSETS = "SELECT * FROM asset"
+
+GET_HOLDINGS_DATA = """
+    WITH asset_summary AS (
+        SELECT
+            Portfolio,
+            Asset,
+            SUM(CASE WHEN Action = 'BUY' THEN Amount ELSE -Amount END) AS amount_holdings,
+            SUM(CASE WHEN Action = 'BUY' THEN Cost ELSE 0 END) AS total_invested,
+            SUM(CASE WHEN Action = 'SELL' THEN (Price * Amount - Fee_Cost) ELSE 0 END) AS realised_profit
+        FROM
+            asset_transaction
+        WHERE Portfolio = :portfolio
+        GROUP BY
+            Portfolio,Asset   
+    )
+    SELECT
+        a.Asset,
+        a.amount_holdings AS Amount,
+        a.amount_holdings * cp.current_price AS Balance,
+        a.total_invested,
+        a.total_invested / a.amount_holdings AS Average_Buy_Price,
+        (a.amount_holdings * cp.current_price) - a.total_invested AS Total_Profit,
+        a.realised_profit,
+        ((a.amount_holdings * cp.current_price) - a.total_invested) - a.realised_profit AS Unrealised_Profit
+    FROM
+        asset_summary a
+    JOIN
+        current_prices cp
+    ON
+        a.Asset = cp.Asset
+"""
+
 
 GET_TRANSACTIONS_BY_PORTFOLIO = """
     SELECT * 
@@ -189,7 +313,7 @@ SELECT
     total_invested, 
     realised_profit, 
     unrealised_profit, 
-    balance, 
-    DATE('now')
+    balance, --ABS(RANDOM() % 90001 + balance) AS random_balance
+    DATE('now') --DATE('now', printf('-%d days', ABS(RANDOM() % (365 * 5)))) AS random_date
 FROM final_metrics;
 """

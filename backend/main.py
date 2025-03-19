@@ -27,8 +27,8 @@ def main(data, output, merge):
         if df is not None:
             current_prices=get_current_prices()
             dper.initialize_db()
-            dper.save_to_db(df,portfolio="TESTE2",asset_prices=current_prices)
-            #dper.print_table('asset_transaction')
+            dper.save_to_db(df,portfolio="default",asset_prices=current_prices)
+            #dper.print_table('portfolio')
             logger.info("✅ Data saved to database.")
         else:
             logger.warning("⚠️ No data was loaded.")
