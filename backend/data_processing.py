@@ -101,10 +101,15 @@ def load_platform_file(file, platform):
         logger.warning(f"⚠️ {platform} not supported. Error: {e}")
         return {}
     
-
-    delimiter = detect_delimiter(file)
-    df = pd.read_csv(file, sep=delimiter)
-    logger.info(f"📂 Uploaded {file}")
+    # Check file extension and read accordingly
+    if file.endswith('.csv'):
+        delimiter = detect_delimiter(file)
+        df = pd.read_csv(file, sep=delimiter)
+    elif file.endswith('.xlsx'):
+        df = pd.read_excel(file)
+    else:
+        logger.warning(f"⚠️ Unsupported file format: {file}")
+        return {}
 
     # Process specific platform
     if hasattr(data_module, "clean_data"):

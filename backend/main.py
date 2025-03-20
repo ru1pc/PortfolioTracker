@@ -6,11 +6,14 @@ import requests
 # Add the parent directory of 'modules' to the Python path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
-import backend.data_processing as dp
+from utils.logger import logger
+
 import backend.data_export as de
 import backend.data_persistence as dper 
-from utils.logger import logger
-import requests
+import backend.database as db
+import backend.data_processing as dp
+
+
 
 def get_crypto_price(url):
     try:
@@ -45,21 +48,23 @@ def ui():
     subprocess.run(['streamlit', 'run', frontend_path])
 
 def main(data, output, merge):
+    # Initialize database first
+    dper.initialize_db()
+    logger.info("✅ Database initialized")
+    
+    # Try to load and process data if available
     df = dp.load_data_from_folder(data)
     if df is not None:
-        dper.initialize_db()
-        
         # Get unique assets and create a price dictionary
         unique_assets = df['Asset'].unique()
         asset_prices = {asset: asset_current_price(asset) for asset in unique_assets}
         dper.save_to_db(df, portfolio="default", asset_prices=asset_prices)
-        logger.info("✅ Data saved to database.")
+        logger.info("✅ Data saved to database")
     else:
-        logger.warning("⚠️ No data was loaded.")
-        return
+        logger.warning("⚠️ No data was loaded, starting with empty database")
     
+    # Launch UI regardless of data presence
     ui()
- 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Management my investments.")
