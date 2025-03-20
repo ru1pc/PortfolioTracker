@@ -1,8 +1,10 @@
+import os
 import pandas as pd
+from backend.data_export import export_to_csv
 from backend.data_processing import load_all_data
 
 def test_load_all_data():
-    # Cria um DataFrame fictício para teste
+ 
     mock_data = pd.DataFrame({
         "Date": ["2023-01-01"],
         "Asset": ["BTC"],
@@ -16,3 +18,15 @@ def test_load_all_data():
     assert df is not None
     assert len(df) == 1
     assert df.iloc[0]["Asset"] == "BTC"
+
+def test_export_to_csv():
+    df = pd.DataFrame({
+        "Date": ["2023-01-01"],
+        "Asset": ["BTC"],
+        "Amount": [1.0],
+        "Cost": [20000.0],
+        "Year": [2023],
+        "Month": [1]
+    })
+    export_to_csv(df, output_dir="tests/output", merge=True)
+    assert os.path.exists("tests/output/merged_2023.xlsx")

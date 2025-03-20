@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run without Merge",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/backend/main.py",
+            "args": [
+                "--data", "data",
+                "--output", "reports"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Run with Merge",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/backend/main.py",
+            "args": [
+                "--data", "data",
+                "--output", "reports",
+                "--merge"
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}
