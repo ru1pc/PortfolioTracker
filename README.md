@@ -15,21 +15,42 @@ A powerful portfolio management application that helps you track your investment
 - 📱 **Modern UI**: Clean and intuitive interface built with Streamlit
 - 💾 **Local Database**: SQLite database for secure data storage
 
+## Screenshots
+
+### Main Dashboard
+![Main Dashboard](docs/screenshots/dashboard.png)
+*Overview of your portfolio with key metrics and performance charts*
+
+### Asset Allocation
+![Asset Allocation](docs/screenshots/allocation.png)
+*Visual representation of your portfolio's asset distribution*
+
+### Transaction History
+![Transaction History](docs/screenshots/transactions.png)
+*Detailed view of all your transactions*
+
+### Data Import
+![Data Import](docs/screenshots/import.png)
+*Easy-to-use interface for importing transaction data*
+
 ## Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/ru1pc/PortfolioTracker.git
+git clone https://github.com/yourusername/PortfolioTracker.git
 cd PortfolioTracker
 ```
 
-2. Create and activate a virtual environment (recommended):
+2. Create and activate a virtual environment:
 ```bash
-python -m venv venv
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
 # On Windows
-venv\Scripts\activate
+.venv\Scripts\activate
 # On Unix or MacOS
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 3. Install dependencies:
@@ -41,12 +62,23 @@ pip install -r requirements.txt
 
 ### Running the Application
 
-1. Start the application:
+1. Make sure your virtual environment is activated:
 ```bash
+# On Windows
+.venv\Scripts\activate
+# On Unix or MacOS
+source .venv/bin/activate
+```
+
+2. Start the application:
+```bash
+# On Windows
+.venv\Scripts\python.exe backend/main.py
+# On Unix or MacOS
 python backend/main.py
 ```
 
-2. The application will:
+3. The application will:
    - Process any data files in the `data` directory
    - Initialize the database if needed
    - Launch the Streamlit interface in your default browser

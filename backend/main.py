@@ -53,8 +53,6 @@ def main(data, output, merge):
         unique_assets = df['Asset'].unique()
         asset_prices = {asset: asset_current_price(asset) for asset in unique_assets}
         dper.save_to_db(df, portfolio="default", asset_prices=asset_prices)
-        dper.print_table("current_prices")
-        dper.print_table("asset")
         logger.info("✅ Data saved to database.")
     else:
         logger.warning("⚠️ No data was loaded.")
