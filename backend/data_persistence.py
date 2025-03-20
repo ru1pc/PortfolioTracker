@@ -20,11 +20,10 @@ def initialize_db():
         create_tables(queries.CREATE_ASSET_PRICE)
         create_tables(queries.CREATE_ASSETS)
         create_tables(queries.CREATE_PORTFOLIOS)
-        
         logger.info("Created schema.")
 
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
+   # except Exception as e:
+   #     logger.error(f"Failed to initialize database: {e}")
     finally:
         conn.close()
 
@@ -43,7 +42,9 @@ def print_table(table_name="transaction"):
     try: 
         conn = sqlite3.connect(DATABASE_PATH)
         df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
+        print(f"-----------{table_name}---------------------")
         print(df)
+        print("--------------------------------")
     except Exception as e:
         logger.error(f"Error: {e}")
     finally:
@@ -101,7 +102,7 @@ def save_assets():
         
         # Update or Insert logic
         for metric in metrics:
-            asset, amount, balance, total_invested, avg_buy_price, realised_profit, unrealised_profit, total_profit = metric
+            asset, current_price, amount, balance, total_invested, avg_buy_price, realised_profit, unrealised_profit, total_profit = metric
             
             # Check if the asset already exists in asset_metrics
             cursor.execute(queries.COUNT_ASSETS, (asset,))
@@ -110,10 +111,10 @@ def save_assets():
             if exists:
                 # Update the existing row
                 cursor.execute(queries.UPDATE_ASSETS, 
-                               (amount, balance, total_invested, avg_buy_price, realised_profit, unrealised_profit, total_profit, asset))
+                               (amount, current_price, balance, total_invested, avg_buy_price, realised_profit, unrealised_profit, total_profit, asset))
             else:
                 # Insert a new row
-                cursor.execute(queries.INSERT_ASSETS,(asset,amount,balance,total_invested,avg_buy_price,realised_profit,unrealised_profit,total_profit))
+                cursor.execute(queries.INSERT_ASSETS,(asset,current_price,amount,balance,total_invested,avg_buy_price,realised_profit,unrealised_profit,total_profit))
         conn.commit()
     except Exception as e:
          logger.error(f"Failed to save data to database: {e}")

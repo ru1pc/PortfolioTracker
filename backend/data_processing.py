@@ -28,7 +28,7 @@ def normalize_data(df, platform):
     df["Platform"] = platform  
     return df
 
-def load_all_data(base_path="data"):
+def load_data_from_folder(base_path="data"):
   
     if not os.path.exists(base_path):
         logger.error(f"❌ Base path '{base_path}' does not exist.")
@@ -55,6 +55,7 @@ def load_all_data(base_path="data"):
         return None
 
 def load_platform_data(platform_folder, platform):
+
     dataframes = []
     
     # check if 'modules' exists
@@ -90,3 +91,26 @@ def load_platform_data(platform_folder, platform):
             logger.warning(f"⚠️ {platform} do not have 'clean_data' function")
     
     return dataframes
+
+def load_platform_file(file, platform):
+    dataframes = {}
+
+    try:
+        data_module = importlib.import_module(f"modules.{platform}")
+    except ModuleNotFoundError as e:
+        logger.warning(f"⚠️ {platform} not supported. Error: {e}")
+        return {}
+    
+
+    delimiter = detect_delimiter(file)
+    df = pd.read_csv(file, sep=delimiter)
+    logger.info(f"📂 Uploaded {file}")
+
+    # Process specific platform
+    if hasattr(data_module, "clean_data"):
+        df = data_module.clean_data(df)
+        df = normalize_data(df, platform)
+
+    else:
+        logger.warning(f"⚠️ {platform} do not have 'clean_data' function")
+    return df

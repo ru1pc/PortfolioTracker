@@ -7,7 +7,6 @@ data/*
 reports/*
 db/*
 
-
 # User-specific files
 *.rsuser
 *.suo

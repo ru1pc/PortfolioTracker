@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS asset_transaction  (
 CREATE_ASSETS="""
 CREATE TABLE IF NOT EXISTS asset (
     Asset TEXT,
+    Current_Price REAL,
     Amount REAL,
     Balance REAL,
     Total_Invested REAL,
@@ -49,9 +50,12 @@ CREATE TABLE IF NOT EXISTS current_prices  (
 );
 """
 
+
+
 DELETE_ASSET_PRICE="""
     DELETE FROM current_prices;
 """
+
 GET_ALLOCATION_BY_ASSET="""
 WITH asset_summary AS (
     SELECT
@@ -110,6 +114,10 @@ GET_ALLOCATION_BY_PORTFOLIO="""
         total_balance tb ON 1=1
     ORDER BY total_allocation DESC;
 """
+ADD_NEW_PORTFOLIO = """
+    INSERT INTO portfolio (portfolio, total_invested, realised_profit, unrealised_profit, balance, date)
+    VALUES (:portfolio, 0, 0, 0, 0, Date('now'))
+"""
 
 GET_ALLOCATION="""
     WITH asset_summary AS (
@@ -161,6 +169,13 @@ GET_HISTORY_OVERVIEW = """
     ORDER BY date;
 """
 
+UPDATE_TRANSACTIONS_PORTFOLIO = """
+    UPDATE asset_transaction
+    SET Portfolio = :Portfolio
+    WHERE Date = :Date and Time_UTC_ = :Time_UTC_ and Asset = :Asset
+"""
+
+
 GET_PORTFOLIOS_LIST = "SELECT DISTINCT portfolio FROM portfolio"
 
 GET_ALL_TRANSACTIONS = "SELECT * FROM asset_transaction"
@@ -183,6 +198,7 @@ GET_HOLDINGS_DATA = """
     )
     SELECT
         a.Asset,
+        cp.Current_Price,
         a.amount_holdings AS Amount,
         a.amount_holdings * cp.current_price AS Balance,
         a.total_invested,
@@ -226,9 +242,9 @@ UPDATE_ASSETS ="""
 """
 
 INSERT_ASSETS ="""
-    INSERT INTO asset (Asset, Amount, Balance, Total_Invested, Average_Buy_Price,
+    INSERT INTO asset (Asset, Current_Price, Amount, Balance, Total_Invested, Average_Buy_Price,
         Realised_Profit, Unrealised_Profit, Total_Profit)
-    VALUES (:asset, :amount, :balance, :total_invested, :avg_buy_price, :realised_profit, :unrealised_profit, :total_profit)
+    VALUES (:asset, :current_price, :amount, :balance, :total_invested, :avg_buy_price, :realised_profit, :unrealised_profit, :total_profit)
 """
 
 CALCULATE_ASSET_METRICS = """
@@ -252,14 +268,10 @@ average_buy_price AS (
     FROM asset_transaction
     GROUP BY Asset
 ),
-current_prices AS (
-    SELECT 'ADA' AS Asset, 0.70 AS current_price UNION ALL
-    SELECT 'ETH' AS Asset, 1914 AS current_price UNION ALL
-    SELECT 'XRP' AS Asset, 2.30 AS current_price
-),
 final_metrics AS (
     SELECT
         s.Asset,
+        c.current_price,
         s.amount,
         s.amount * c.current_price AS balance,
         s.total_invested,
