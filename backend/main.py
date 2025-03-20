@@ -1,14 +1,14 @@
 ﻿import argparse
 import sys, os
 import subprocess
+import requests
 
- # Add the parent directory of 'modules' to the Python path
+# Add the parent directory of 'modules' to the Python path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
 import backend.data_processing as dp
 import backend.data_export as de
 import backend.data_persistence as dper 
-import backend.database as db 
 from utils.logger import logger
 import requests
 

@@ -98,32 +98,7 @@ def PortfolioMetrics(portfolio,allocation_view):
         
         st.subheader(f"Asset Transactions ({len(transactions)})")
         st.dataframe(transactions, hide_index=True)
-    #  """    
-    #     if st.toggle("Enable editing"):
-    #             if "original_transactions" not in st.session_state:
-    #                 st.session_state.original_transactions = transactions.copy()
-    #             edited_data = st.data_editor(transactions,hide_index=True,use_container_width=True)
-    #             # Compare original and edited DataFrames to find changed rows
-    #             if st.button("Save", type="secondary"):
-    #                 original_df = st.session_state.original_transactions
-    #                 changed_rows = edited_data.compare(original_df)
-                    
-    #                 # apply changes to the database
-    #                 if not changed_rows.empty:
-    #                     db.update_transactions_portfolio(changed_rows)
-                
-    #             # Reset the original DataFrame to the edited version
-    #             st.session_state.original_transactions = edited_data.copy()
-    #         else: 
-    #     """
 
-        
-    
-
-
-
-        
-        
 
 def get_modules_available():
     modules_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'modules')
@@ -159,10 +134,9 @@ def import_data():
     with col1:
         if st.button("Import", type="primary", use_container_width=True):
             for file in uploaded_files:
-                # Criar um arquivo temporário para salvar o CSV
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_file:
-                    temp_file.write(file.getbuffer())  # Salvar o conteúdo no arquivo
-                    temp_filepath = temp_file.name  # Obter o caminho do arquivo
+                    temp_file.write(file.getbuffer())  
+                    temp_filepath = temp_file.name  
                 imported_data = dp.load_platform_file(temp_filepath, selected_module)
                 unique_assets = imported_data['Asset'].unique()
                 asset_prices = {asset: main.asset_current_price(asset) for asset in unique_assets}
@@ -221,8 +195,6 @@ def menu():
 
     overview_bool= st.sidebar.button(f"**Overview**",type='primary')
     allocation_view = st.sidebar.radio("Alocation by", ["Asset", "Portfolio","Type", "Platform"],index=None)
-    
-    
     
     portfolios_latest_data = db.get_portfolio_latest_data()
  
