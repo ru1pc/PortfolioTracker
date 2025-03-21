@@ -203,7 +203,6 @@ INSERT_ASSETS ="""
     VALUES (:Asset,:Amount,:Total_Invested, :Current_Price,:Balance, :Average_Buy_Price,:Realised_Profit,:Unrealised_Profit,:Total_Profit)
 """
 
-
 CALCULATE_HOLDINGS_TABLE = """
 WITH asset_summary AS (
     SELECT
@@ -239,7 +238,6 @@ SELECT
     (Realised_Profit + Unrealised_Profit) AS Total_Profit
 FROM asset_metrics;
 """
-
 
 SAVE_PORTFOLIO_METRICS = """
 WITH transaction_months AS (

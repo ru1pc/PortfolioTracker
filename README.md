@@ -1,154 +1,127 @@
 # Portfolio Tracker
 
-A powerful portfolio management application that helps you track your investments across multiple platforms and assets. Built with Python, Streamlit, and SQLite.
+A comprehensive cryptocurrency portfolio management application built with Python, Streamlit, and SQLite. Track your crypto investments across multiple portfolios, monitor performance, and analyze asset allocations in real-time.
 
 ## Features
 
-- 📊 **Multi-Platform Support**: Import data from various cryptocurrency exchanges and platforms
-- 💰 **Real-time Price Tracking**: Get current prices for your assets
-- 📈 **Portfolio Analytics**: 
-  - Performance charts
-  - Asset allocation visualization
-  - Realized and unrealized profit tracking
-  - Transaction history
-- 🔄 **Data Import**: Support for CSV file imports from supported platforms
-- 📱 **Modern UI**: Clean and intuitive interface built with Streamlit
-- 💾 **Local Database**: SQLite database for secure data storage
+### Portfolio Management
+- **Multi-Portfolio Support**: Create and manage multiple investment portfolios
+- **Real-time Price Tracking**: Automatic cryptocurrency price updates
+- **Performance Analytics**: Track portfolio value, profits, and returns over time
+- **Asset Allocation**: Visual breakdown of portfolio composition
+- **Transaction History**: Complete record of all buy/sell transactions
+
+### Data Management
+- **CSV/Excel Import**: Import transaction data from various platforms
+- **Platform Support**: Currently supports Binance (more exchanges planned)
+- **Data Normalization**: Automatic handling of different data formats
+- **Local Storage**: Secure SQLite database for all portfolio data
+
+### User Interface
+- **Modern Dashboard**: Clean, intuitive interface built with Streamlit
+- **Interactive Charts**: Visual representation of portfolio performance
+- **Asset Overview**: Detailed metrics for each cryptocurrency
+- **Responsive Design**: Works well on desktop and tablet devices
 
 ## Screenshots
 
-### Main Dashboard
-![Main Dashboard](docs/screenshots/dashboard.png)
-*Overview of your portfolio with key metrics and performance charts*
+### Dashboard Overview
+![Dashboard](docs/screenshots/dashboard.png)
+*Main dashboard showing portfolio performance, asset allocation, and key metrics*
+
+### Data Import Interface
+![Import Data](docs/screenshots/import.png)
+*Easy-to-use interface for importing transaction data from CSV or Excel files*
 
 ### Asset Allocation
 ![Asset Allocation](docs/screenshots/allocation.png)
-*Visual representation of your portfolio's asset distribution*
+*Visual breakdown of portfolio composition and asset distribution*
 
 ### Transaction History
-![Transaction History](docs/screenshots/transactions.png)
-*Detailed view of all your transactions*
+![Transactions](docs/screenshots/transactions.png)
+*Detailed view of all transactions with filtering and sorting capabilities*
 
-### Data Import
-![Data Import](docs/screenshots/import.png)
-*Easy-to-use interface for importing transaction data*
+## Modular Structure
 
-## Installation
+The application uses a modular architecture for processing data from different cryptocurrency exchanges. Each exchange has its own module in the `modules/` directory that handles the specific data format and requirements.
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/PortfolioTracker.git
-cd PortfolioTracker
-```
+### Current Implementation
+- ✅ **Binance Module**: Fully implemented 
+  - Supports CSV transaction history export
+  - Handles buy/sell transactions
+  - Maps exchange-specific fields to standard format
+    - *Export Trade Order history within 6 months*
 
-2. Create and activate a virtual environment:
-```bash
-# Create virtual environment
-python -m venv .venv
+### Adding New Exchange Support
+The modular structure allows easy integration of new exchanges. Each module needs to implement:
+1. `clean_data(df)`: Transform exchange-specific data format
+2. Column mapping for standardization:
+   ```python
+   column_mapper = {
+       'Exchange Column': 'Standard Column',
+       'Date(UTC)': 'Date',
+       'Type': 'Action',
+       # ... other mappings
+   }
+   ```
 
-# Activate virtual environment
-# On Windows
-.venv\Scripts\activate
-# On Unix or MacOS
-source .venv/bin/activate
-```
+### Planned Exchange Support
+- 🔄 Kraken
+- 🔄 Coinbase
+- 🔄 KuCoin
 
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+## Data Processing Flow
 
-## Usage
+### Import Process
+1. User uploads transaction file. Might also be loaded directly drom data/ 
+2. System detects file type (CSV/Excel) and exchange
+3. Exchange-specific module processes the data
+4. Data is normalized and saved to database
 
-### Running the Application
+### Database Updates
+- Transactions are stored in `Asset_Transaction` table
+- Asset metrics are recalculated
+- Portfolio values are updated
+- Current prices are fetched and stored
 
-1. Make sure your virtual environment is activated:
-```bash
-# On Windows
-.venv\Scripts\activate
-# On Unix or MacOS
-source .venv/bin/activate
-```
+## Known Limitations
 
-2. Start the application:
-```bash
-# On Windows
-.venv\Scripts\python.exe backend/main.py
-# On Unix or MacOS
-python backend/main.py
-```
+1. **Exchange Support**
+   - Currently only supports Binance
+   - Manual CSV export required
+   - No direct API integration yet
 
-3. The application will:
-   - Process any data files in the `data` directory
-   - Initialize the database if needed
-   - Launch the Streamlit interface in your default browser
+2. **Price Updates**
+   - Single price source
+   - Manual refresh required
+   - No historical price tracking
 
-### Data Import
+3. **Performance**
+   - Large transaction files may be slow
+   - No data pagination implemented
 
-1. Place your CSV files in the appropriate platform folder under the `data` directory:
-```
-data/
-  ├── binance/
-  │   └── your_transactions.csv
-  └── other_platform/
-      └── your_transactions.csv
-```
+4. **Features**
+   - No Auth
+   - Export is not finished
+   - cli flags with poor implementation
 
-2. Use the "Import Data" button in the UI to import new transactions
+## Troubleshooting
 
-### Supported Platforms
+### Common Issues
 
-Currently supports importing data from:
-- Binance (export trades orders)
+1. **Database Initialization Error**
+   - Ensure you have write permissions in the db/ directory
+   - Check if database.db exists and is not locked
 
-## Project Structure
+2. **Import Errors**
+   - Verify CSV format matches expected structure
+   - Check file encoding (UTF-8 recommended)
 
-```
-PortfolioTracker/
-├── backend/
-│   ├── data_processing.py    # Data processing and normalization
-│   ├── data_persistence.py   # Database operations
-│   ├── database.py          # Database queries
-│   └── main.py              # Application entry point
-├── frontend/
-│   └── app.py               # Streamlit UI
-├── modules/
-│   └── platform_specific/   # Platform-specific data processors
-├── utils/
-│   ├── logger.py           # Logging configuration
-└── data/                   # Data directory for CSV files
-```
-
-## Development
-
-### Adding New Platform Support
-
-1. Create a new module in the `modules` directory
-2. Implement the required functions:
-   - `clean_data(df)`: Clean and normalize platform-specific data
-
-### Database Schema
-
-The application uses SQLite with the following main tables:
-- `transactions`: Transaction history
-- `assets`: Asset information
-- `portfolios`: Portfolio details
-- `current_prices`: Latest asset prices
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+3. **Price Update Issues**
+   - Verify internet connection
+   - Check if asset symbols match expected format
+   
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Built with [Streamlit](https://streamlit.io/)
-- Data visualization powered by [Plotly](https://plotly.com/)
-- Price data from [cryptoprices.cc](https://cryptoprices.cc/)

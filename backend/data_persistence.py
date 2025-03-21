@@ -23,8 +23,8 @@ def initialize_db():
         create_tables(queries.CREATE_PORTFOLIOS)
         logger.info("Created schema.")
 
-   # except Exception as e:
-   #     logger.error(f"Failed to initialize database: {e}")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
     finally:
         conn.close()
 

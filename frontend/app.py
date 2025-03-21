@@ -154,19 +154,18 @@ def import_data():
                 temp_filepath = temp_file.name  
             imported_data = dp.load_platform_file(temp_filepath, selected_module)
             main.update_asset_prices(imported_data['Asset'].unique())
-            dper.save_to_db(imported_data,portfolio=selectPortfolio)
+            dper.save_to_db(imported_data,portfolio=selectPortfolio) 
             st.rerun()
     with col2:
         if st.button("Cancel", type="secondary", use_container_width=True):
             st.rerun()
 
 def menu():
-    #allocation_view = "asset"
     if st.sidebar.button(f"**Update values**",type='tertiary',icon="🔄"):
         unique_assets = db.get_all_assets()
         main.update_asset_prices(unique_assets['Asset'])
         db.save_assets()
-        st.rerun()
+        db.save_portfolios()
     
     st.sidebar.button(f"**Overview**",type='primary')
     allocation_view = st.sidebar.radio("Alocation by", ["Asset", "Portfolio","Type", "Platform"],index=0)
