@@ -60,45 +60,28 @@ def allocation_chart(portfolio_name,allocation_view):
     if portfolio_name == "Overview":
         if allocation_view == "Asset":
             holdings = db.get_all_assets()
-           
-            holdings = holdings[['Asset', 'Balance']].sort_values('Balance', ascending=False)
-            total_balance = holdings['Balance'].sum()
-            holdings['Allocation'] = holdings.apply(lambda row: ((row['Balance']) / total_balance) * 100, axis=1)
-            holdings['Allocation'] = holdings['Allocation'].round(2)
-
-            fig_allocation = px.pie(holdings, values='Allocation', names=f"{allocation_view}")
-            st.plotly_chart(fig_allocation)
         else:
             if allocation_view == "Portfolio":
                 holdings = db.get_portfolio_latest_data()
-                holdings = holdings[['Portfolio', 'Balance']].sort_values('Balance', ascending=False)
-                total_balance = holdings['Balance'].sum()
-                holdings['Allocation'] = holdings.apply(lambda row: ((row['Balance']) / total_balance) * 100, axis=1)
-                holdings['Allocation'] = holdings['Allocation'].round(2)
-                fig_allocation = px.pie(holdings, values='Allocation', names=f"{allocation_view}")
-                st.plotly_chart(fig_allocation)
-
-            if allocation_view == "Type":
-                holdings = db.get_allocation_by_type()
-            if allocation_view == "Platform":
-                holdings = db.get_allocation_by_platform()
+            else:
+                holdings = db.get_assets_by(allocation_view)
     else:
         allocation_view = "Asset"
         holdings = db.get_assets_by_portfolio(portfolio_name)
-        holdings = holdings[['Asset', 'Balance']].sort_values('Balance', ascending=False)
-
-
-        total_balance = holdings['Balance'].sum()
-        holdings['Allocation'] = holdings.apply(lambda row: ((row['Balance']) / total_balance) * 100, axis=1)
-        holdings['Allocation'] = holdings['Allocation'].round(2)
-
-        fig_allocation = px.pie(holdings, values='Allocation', names=f"{allocation_view}")
-        
-    #    fig_allocation = px.pie(pd.DataFrame({f"{allocation_view.capitalize()}": ['No Data'], 'Allocation': [0]}), values='Allocation', names=f"{allocation_view.capitalize()}")
-    
-        st.plotly_chart(fig_allocation)
    
-
+    if holdings is not None and len(holdings) > 0:
+        holdings = holdings[[f"{allocation_view}", 'Balance']].sort_values('Balance', ascending=False)
+        total_balance = holdings['Balance'][holdings['Balance'] > 0].sum()
+        holdings['Allocation'] = holdings.apply(
+            lambda row: ((row['Balance'] if row['Balance'] > 0 else 0) / total_balance) * 100, axis=1
+        )
+        holdings['Allocation'] = holdings['Allocation'].round(2)
+        holdings = holdings[holdings['Allocation'] != 0]
+        fig_allocation = px.pie(holdings, values='Allocation', names=f"{allocation_view}")
+        st.plotly_chart(fig_allocation)
+    else:
+        st.plotly_chart(px.pie(pd.DataFrame({'Allocation': ['No Data']}), values='Allocation', names='Allocation'))
+        
 def PortfolioMetrics(portfolio,allocation_view):
     st.session_state.selected_portfolio = portfolio['Portfolio']
     portfolio_metrics(portfolio)
@@ -123,7 +106,7 @@ def PortfolioMetrics(portfolio,allocation_view):
             st.subheader(f"Holdings ({len(df_asset_metrics)})")
         else:
             st.subheader(f"Holdings (0)")
-        st.dataframe(df_asset_metrics,hide_index=True)
+        st.dataframe(df_asset_metrics,hide_index=True)#column_order=['Asset','Amount','Total_Invested','Current_Price','Balance','Average_Buy_Price','Realised_Profit','Unrealised_Profit','Total_Profit'])
 
     with transaction_tab:
         
@@ -150,7 +133,6 @@ def create_portfolio():
 @st.dialog("Import Data",)
 def import_data():
     selectPortfolio=st.selectbox("Select Portfolio",db.get_portfolios(),index=None)
-    
     modules_available = get_modules_available()
     selected_module = st.selectbox(
         "Select Platform",
@@ -171,19 +153,22 @@ def import_data():
                 temp_file.write(uploaded_file.getbuffer())  
                 temp_filepath = temp_file.name  
             imported_data = dp.load_platform_file(temp_filepath, selected_module)
-            unique_assets = imported_data['Asset'].unique()
-            asset_prices = {asset: main.asset_current_price(asset) for asset in unique_assets}
-            dper.save_to_db(imported_data,portfolio=selectPortfolio,asset_prices=asset_prices)
+            main.update_asset_prices(imported_data['Asset'].unique())
+            dper.save_to_db(imported_data,portfolio=selectPortfolio)
             st.rerun()
     with col2:
         if st.button("Cancel", type="secondary", use_container_width=True):
             st.rerun()
 
 def menu():
-    
     #allocation_view = "asset"
-
-    overview_bool= st.sidebar.button(f"**Overview**",type='primary')
+    if st.sidebar.button(f"**Update values**",type='tertiary',icon="🔄"):
+        unique_assets = db.get_all_assets()
+        main.update_asset_prices(unique_assets['Asset'])
+        db.save_assets()
+        st.rerun()
+    
+    st.sidebar.button(f"**Overview**",type='primary')
     allocation_view = st.sidebar.radio("Alocation by", ["Asset", "Portfolio","Type", "Platform"],index=0)
     
     portfolios_latest_data = db.get_portfolio_latest_data()
@@ -208,7 +193,7 @@ def menu():
 
    
     if st.sidebar.button("+ Create Portfolio"):
-        create_portfolio()
+       create_portfolio()
 
     if st.sidebar.button("Import Data"):
        import_data()

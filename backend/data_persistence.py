@@ -59,16 +59,15 @@ def get_table_schema(table_name):
     conn.close()
     return [(col[1], col[2]) for col in columns] 
 
-def save_to_db(df, portfolio, asset_prices):
+def save_to_db(df, portfolio):
     df['Portfolio'] = portfolio
 
     try:
         db.save_transactions(df)
-        db.save_asset_prices(asset_prices)  
         db.save_assets()
         db.save_portfolios()
     except Exception as e:
-        logger.error(f"Failed to save data to database: {e}")
+        logger.error(f"Failed to save_to_db: {e}")
     finally:
         pass
 

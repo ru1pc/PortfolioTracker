@@ -8,18 +8,14 @@ DATABASE_PATH = "db/database.db"
 
 def get_portfolio_snapshot():
     return
-def get_allocation_by(allocation_view="Asset"):
+
+def get_assets_by(allocation_view="Type"):
     try:
         conn = sqlite3.connect(DATABASE_PATH)     
-        if allocation_view == "Portfolio":
-            q = query.GET_PORTFOLIO_LATEST_DATA
-            portfolio_latest_data=  pd.read_sql_query(q,conn)
-
-        else:
-            q = query.GET_ALLOCATION.format(filter=allocation_view)
-            allocation_data= pd.read_sql_query(q,conn)
-        logger.info(f"📂 get_allocation_by()")
-        return allocation_data
+        q = query.GET_ASSETS_BY.format(filter=allocation_view)
+        assets_by= pd.read_sql_query(q,conn)
+        logger.info(f"📂 get_assets_by()")
+        return assets_by
     except Exception as e:
         logger.error(f"Failed to load data from database: {e}")
     finally:
@@ -64,10 +60,11 @@ def save_asset_prices(asset_prices):
         cursor = conn.cursor()  
         cursor.execute(query.DELETE_ASSET_PRICE)
         for asset,current_price in asset_prices.items():
-            cursor.execute(query.INSERT_ASSET_PRICE, (asset,current_price))
+            cursor.execute(query.CREATE_ASSET_PRICE, {"Current_Price":current_price,"Asset":asset})
+        logger.info(f"🔁 Updated asset price for {asset}")    
         conn.commit()
     except Exception as e:
-        logger.error(f"Failed to save data to database: {e}")
+        logger.error(f"Failed to save asset prices: {e}")
     finally:
         conn.close()
 
@@ -123,7 +120,7 @@ def get_portfolio_latest_data():
         logger.info(f"📂 get_portfolio_latest_data() ")
         return portfolios_data
     except Exception as e:
-        logger.error(f"Failed to save data to database: {e}")
+        logger.error(f"Failed to get_portfolio_latest_data: {e}")
     finally:
         conn.close()
 
@@ -134,7 +131,7 @@ def get_transactions_by_portfolio(portfolio_name="default"):
         logger.info(f"📂 get_transactions_by_portfolio() ")
         return portfolio_transactions
     except Exception as e:
-        logger.error(f"Failed to save data to database: {e}")
+        logger.error(f"Failed to get_transactions_by_portfolio: {e}")
     finally:
         conn.close()
 
@@ -149,7 +146,7 @@ def get_holdings(portfolio):
     finally:
         conn.close()
     return
-## ASSET METRICS
+
 
 def calculate_avg_price_by_asset(asset_name,portfolio="default"):
     try:
@@ -188,7 +185,7 @@ def save_asset_prices(asset_prices):
             cursor.execute(query.INSERT_ASSET_PRICE, (asset,current_price))
         conn.commit()
     except Exception as e:
-        logger.error(f"Failed to save data to database: {e}")
+        logger.error(f"Failed save_asset_prices: {e}")
     finally:
         conn.close()
 
@@ -202,8 +199,8 @@ def save_transactions(df):
 
         conn.commit()
         logger.info(f"✅ Successfully saved {len(df)} transactions to database")
-    #except Exception as e:
-    #    logger.error(f"Failed to save transactions to database: {e}")
+    except Exception as e:
+        logger.error(f"Failed to save transactions to database: {e}")
     finally:
         conn.close()
 
@@ -213,27 +210,25 @@ def save_assets():
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()        
 
-        cursor.execute(query.CALCULATE_ASSET_METRICS)
+        cursor.execute(query.CALCULATE_HOLDINGS_TABLE)
         metrics = cursor.fetchall()
         
         # Update or Insert logic
         for metric in metrics:
-            asset, current_price, amount, balance, total_invested, avg_buy_price, realised_profit, unrealised_profit, total_profit = metric
+            Asset,Amount,Total_Invested,Current_Price,Balance,Average_Buy_Price,Realised_Profit,Unrealised_Profit,Total_Profit = metric
             
-            # Check if the asset already exists in asset_metrics
-            cursor.execute(query.COUNT_ASSETS, (asset,))
+            cursor.execute(query.COUNT_ASSETS, (Asset,))
             exists = cursor.fetchone()[0]
             
             if exists:
-                # Update the existing row
+
                 cursor.execute(query.UPDATE_ASSETS, 
-                               (amount, current_price, balance, total_invested, avg_buy_price, realised_profit, unrealised_profit, total_profit, asset))
+                               (Asset,Amount,Total_Invested,Current_Price,Balance,Average_Buy_Price,Realised_Profit,Unrealised_Profit,Total_Profit))
             else:
-                # Insert a new row
-                cursor.execute(query.INSERT_ASSETS,(asset,current_price,amount,balance,total_invested,avg_buy_price,realised_profit,unrealised_profit,total_profit))
+                cursor.execute(query.INSERT_ASSETS,(Asset,Amount,Total_Invested,Current_Price,Balance,Average_Buy_Price,Realised_Profit,Unrealised_Profit,Total_Profit))
         conn.commit()
     except Exception as e:
-         logger.error(f"Failed to save data to database: {e}")
+         logger.error(f"Failed save_assets: {e}")
     finally:
         conn.close()
 
@@ -245,6 +240,6 @@ def save_portfolios():
         cursor.execute(query.SAVE_PORTFOLIO_METRICS)
         conn.commit()
     except Exception as e:
-        logger.error(f"Failed to save data to database: {e}")
+        logger.error(f"Failed to save_portfolios: {e}")
     finally:
         conn.close()

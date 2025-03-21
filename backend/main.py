@@ -14,6 +14,17 @@ import backend.database as db
 import backend.data_processing as dp
 
 
+def update_asset_prices(assets):
+    updated_prices = {}
+    for asset in assets:
+        price = get_crypto_price(f"https://cryptoprices.cc/{asset}")
+        if price is not None:
+            updated_prices[asset] = price
+    else:
+        updated_prices[asset] = 0
+    db.save_asset_prices(updated_prices)
+    
+
 
 def get_crypto_price(url):
     try:
@@ -33,13 +44,6 @@ def get_crypto_price(url):
     except Exception as e:
         logger.error(f"An error occurred: {e}")
         return None
-
-def asset_current_price(asset):
-    price = get_crypto_price(f"https://cryptoprices.cc/{asset}")
-    if price is not None:
-        return price
-    else:
-       return 0
      
 
 def ui():
@@ -57,8 +61,8 @@ def main(data, output, merge):
     if df is not None:
         # Get unique assets and create a price dictionary
         unique_assets = df['Asset'].unique()
-        asset_prices = {asset: asset_current_price(asset) for asset in unique_assets}
-        dper.save_to_db(df, portfolio="default", asset_prices=asset_prices)
+        update_asset_prices(unique_assets)
+        dper.save_to_db(df, portfolio="default")
         logger.info("✅ Data saved to database")
     else:
         logger.warning("⚠️ No data was loaded, starting with empty database")
