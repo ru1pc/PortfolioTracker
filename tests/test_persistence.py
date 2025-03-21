@@ -12,7 +12,6 @@ def test_save_and_load():
         "Month": [1]
     })
 
-    # Save data to database
     save_to_db(df)
 
     # Load data from database

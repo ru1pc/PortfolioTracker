@@ -6,11 +6,25 @@ import requests
 # Add the parent directory of 'modules' to the Python path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
-import backend.data_processing as dp
+from utils.logger import logger
+
 import backend.data_export as de
 import backend.data_persistence as dper 
-from utils.logger import logger
-import requests
+import backend.database as db
+import backend.data_processing as dp
+
+
+def update_asset_prices(assets):
+    updated_prices = {}
+    for asset in assets:
+        price = get_crypto_price(f"https://cryptoprices.cc/{asset}")
+        if price is not None:
+            updated_prices[asset] = price
+    else:
+        updated_prices[asset] = 0
+    db.save_asset_prices(updated_prices)
+    
+
 
 def get_crypto_price(url):
     try:
@@ -30,13 +44,6 @@ def get_crypto_price(url):
     except Exception as e:
         logger.error(f"An error occurred: {e}")
         return None
-
-def asset_current_price(asset):
-    price = get_crypto_price(f"https://cryptoprices.cc/{asset}")
-    if price is not None:
-        return price
-    else:
-       return 0
      
 
 def ui():
@@ -45,23 +52,23 @@ def ui():
     subprocess.run(['streamlit', 'run', frontend_path])
 
 def main(data, output, merge):
+    # Initialize database first
+    dper.initialize_db()
+    logger.info("✅ Database initialized")
+    
+    # Try to load and process data if available
     df = dp.load_data_from_folder(data)
     if df is not None:
-        dper.initialize_db()
-        
         # Get unique assets and create a price dictionary
         unique_assets = df['Asset'].unique()
-        asset_prices = {asset: asset_current_price(asset) for asset in unique_assets}
-        dper.save_to_db(df, portfolio="default", asset_prices=asset_prices)
-        dper.print_table("current_prices")
-        dper.print_table("asset")
-        logger.info("✅ Data saved to database.")
+        update_asset_prices(unique_assets)
+        dper.save_to_db(df, portfolio="default")
+        logger.info("✅ Data saved to database")
     else:
-        logger.warning("⚠️ No data was loaded.")
-        return
+        logger.warning("⚠️ No data was loaded, starting with empty database")
     
+    # Launch UI regardless of data presence
     ui()
- 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Management my investments.")

@@ -5,8 +5,9 @@ import numpy as np
 
 from backend import queries
 from utils.logger import logger
+import backend.database as db 
 
-DATABASE_PATH = "db/database.db"
+DATABASE_PATH = db.DATABASE_PATH
 
 def initialize_db():
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
@@ -22,8 +23,8 @@ def initialize_db():
         create_tables(queries.CREATE_PORTFOLIOS)
         logger.info("Created schema.")
 
-   # except Exception as e:
-   #     logger.error(f"Failed to initialize database: {e}")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
     finally:
         conn.close()
 
@@ -38,7 +39,7 @@ def create_tables(table):
     finally:
         conn.close()
 
-def print_table(table_name="transaction"):
+def print_table(table_name="Asset_Transaction"):
     try: 
         conn = sqlite3.connect(DATABASE_PATH)
         df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
@@ -58,77 +59,18 @@ def get_table_schema(table_name):
     conn.close()
     return [(col[1], col[2]) for col in columns] 
 
-def save_to_db(df, asset_prices,portfolio):
-
+def save_to_db(df, portfolio):
     df['Portfolio'] = portfolio
 
-    save_transactions(df)
-    save_asset_prices(asset_prices)
-    save_assets()
-    save_portfolios()
-
-def save_asset_prices(asset_prices):
     try:
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()  
-        cursor.execute(queries.DELETE_ASSET_PRICE)
-        for asset,current_price in asset_prices.items():
-            cursor.execute(queries.INSERT_ASSET_PRICE, (asset,current_price))
-        conn.commit()
+        db.save_transactions(df)
+        db.save_assets()
+        db.save_portfolios()
     except Exception as e:
-        logger.error(f"Failed to save data to database: {e}")
+        logger.error(f"Failed to save_to_db: {e}")
     finally:
-        conn.close()
+        pass
 
-def save_transactions(df):
-    try:
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()        
-        df.to_sql("asset_transaction", conn, if_exists="append",index=False)
-        conn.commit()
-    except Exception as e:
-        logger.error(f"Failed to save data to database: {e}")
-    finally:
-        conn.close()
 
-def save_assets():
-    
-    try:
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()        
 
-        cursor.execute(queries.CALCULATE_ASSET_METRICS)
-        metrics = cursor.fetchall()
-        
-        # Update or Insert logic
-        for metric in metrics:
-            asset, current_price, amount, balance, total_invested, avg_buy_price, realised_profit, unrealised_profit, total_profit = metric
-            
-            # Check if the asset already exists in asset_metrics
-            cursor.execute(queries.COUNT_ASSETS, (asset,))
-            exists = cursor.fetchone()[0]
-            
-            if exists:
-                # Update the existing row
-                cursor.execute(queries.UPDATE_ASSETS, 
-                               (amount, current_price, balance, total_invested, avg_buy_price, realised_profit, unrealised_profit, total_profit, asset))
-            else:
-                # Insert a new row
-                cursor.execute(queries.INSERT_ASSETS,(asset,current_price,amount,balance,total_invested,avg_buy_price,realised_profit,unrealised_profit,total_profit))
-        conn.commit()
-    except Exception as e:
-         logger.error(f"Failed to save data to database: {e}")
-    finally:
-        conn.close()
 
-def save_portfolios():
-
-    try:
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()        
-        cursor.execute(queries.SAVE_PORTFOLIO_METRICS)
-        conn.commit()
-    except Exception as e:
-        logger.error(f"Failed to save data to database: {e}")
-    finally:
-        conn.close()

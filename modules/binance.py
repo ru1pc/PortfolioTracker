@@ -1,8 +1,6 @@
 import pandas as pd
-
-
 from utils import logger
-from datetime import datetime
+from utils.logger import logger
 
 def rename_columns(df, column_mapper):
 
@@ -17,23 +15,22 @@ def rename_columns(df, column_mapper):
 
 def clean_data(df):
     column_mapper = {
-        'Date(UTC)': 'Date',
         'Type': 'Action',
-        'Market': 'Asset',
+        'Base Asset': 'Asset',
+        'Quote Asset': 'Currency',
         'Total': 'Cost',
         'Fee Coin': 'Fee_Coin'
     }
 
     df = rename_columns(df, column_mapper)
-    #df = df.rename(mapper=column_mapper, axis=1)
     
-    pattern = r'([A-Z]+)(USDT|USDC|USD|EURI|EUR)'
+    #pattern = r'([A-Z]+)(USDT|USDC|USD|EURI|EUR)'
 
-    df[['Date', 'Time_UTC_']] = df['Date'].astype(str).str.split(' ', expand=True)    
-    df[['Asset','Currency']] = df['Asset'].str.extract(pattern)
+    df[['Date', 'Time_UTC_']] = df['Date(UTC)'].astype(str).str.split(' ', expand=True)    
+
+    df = df.drop(['Date(UTC)', 'Pair'], axis=1)
+    
     df['Type'] = 'CRYPTO'
-
-    #df = df.astype({'Asset': 'category', 'Price': 'float64', 'Amount':'float64', 'Cost': 'float64', 'Fee': 'float64','Platform':'category'})
 
     df[['Amount','Price','Cost','Fee']] = df[['Amount','Price','Cost','Fee']].round(8)
     df['Fee_Cost'] = df['Price'] * df['Fee']

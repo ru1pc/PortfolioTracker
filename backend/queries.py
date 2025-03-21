@@ -1,5 +1,5 @@
 CREATE_TRANSACTIONS="""
-CREATE TABLE IF NOT EXISTS asset_transaction  (
+CREATE TABLE IF NOT EXISTS Asset_Transaction  (
     Date DATE,
     Time_UTC_ TEXT,
     Asset TEXT,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS asset_transaction  (
 """
 
 CREATE_ASSETS="""
-CREATE TABLE IF NOT EXISTS asset (
+CREATE TABLE IF NOT EXISTS Asset (
     Asset TEXT,
     Current_Price REAL,
     Amount REAL,
@@ -32,300 +32,271 @@ CREATE TABLE IF NOT EXISTS asset (
 """
 
 CREATE_PORTFOLIOS="""
-CREATE TABLE IF NOT EXISTS portfolio (
-    portfolio TEXT NOT NULL,
-    total_invested REAL NOT NULL,
-    realised_profit REAL NOT NULL,
-    unrealised_profit REAL NOT NULL,
-    balance REAL NOT NULL,
-    date DATE NOT NULL,
-    PRIMARY KEY (portfolio, date)
+CREATE TABLE IF NOT EXISTS Portfolio (
+    Portfolio TEXT NOT NULL,
+    Total_Invested REAL NOT NULL,
+    Realised_Profit REAL NOT NULL,
+    Unrealised_Profit REAL NOT NULL,
+    Balance REAL NOT NULL,
+    Date DATE NOT NULL,
+    PRIMARY KEY (Portfolio, Date)
 );
 """
 
 CREATE_ASSET_PRICE="""
-CREATE TABLE IF NOT EXISTS current_prices  (
-    asset TEXT PRIMARY KEY,
-    current_price REAL NOT NULL
+CREATE TABLE IF NOT EXISTS Current_prices  (
+    Asset TEXT PRIMARY KEY,
+    Current_Price REAL NOT NULL
 );
 """
 
-
-
 DELETE_ASSET_PRICE="""
-    DELETE FROM current_prices;
+    DELETE FROM Current_prices;
 """
 
-GET_ALLOCATION_BY_ASSET="""
-WITH asset_summary AS (
-    SELECT
-        asset,
-        SUM(CASE WHEN action = 'BUY' THEN amount ELSE -amount END) AS amount_holdings
-    FROM asset_transaction
-    GROUP BY asset
-),
-current_values AS (
-    SELECT
-        a.asset,
-        a.amount_holdings,
-        c.current_price,
-        a.amount_holdings * c.current_price AS allocation
-    FROM asset_summary a
-    JOIN
-        current_prices c
-    ON
-        a.asset = c.asset
-)
-SELECT
-    asset,
-    SUM(allocation) AS total_allocation
-FROM current_values
-GROUP BY asset
-ORDER BY total_allocation DESC;
-"""
-
-GET_ALLOCATION_BY_PORTFOLIO="""
-    WITH latest_portfolio AS (
-        SELECT portfolio, MAX(date) as latest_date
-        FROM portfolio
-        GROUP BY portfolio
-    ),
-    filtered_portfolio AS (
-        SELECT
-            p.portfolio,
-            p.balance
-        FROM portfolio p
-        JOIN
-            latest_portfolio lp
-        ON
-            p.portfolio = lp.portfolio AND p.date = lp.latest_date
-    ),
-    total_balance AS (
-        SELECT
-            SUM(balance) AS total_portfolios
-        FROM filtered_portfolio
-    )
-    SELECT
-        fp.portfolio,
-        fp.balance,
-        ROUND((fp.balance / tb.total_portfolios) * 100, 2) AS total_allocation
-    FROM filtered_portfolio fp
-    JOIN
-        total_balance tb ON 1=1
-    ORDER BY total_allocation DESC;
-"""
 ADD_NEW_PORTFOLIO = """
-    INSERT INTO portfolio (portfolio, total_invested, realised_profit, unrealised_profit, balance, date)
-    VALUES (:portfolio, 0, 0, 0, 0, Date('now'))
+    INSERT INTO Portfolio (Portfolio, Total_Invested, Realised_Profit, Unrealised_Profit, Balance, Date)
+    VALUES (:Portfolio, 0, 0, 0, 0, 0)
 """
 
-GET_ALLOCATION="""
-    WITH asset_summary AS (
-        SELECT 
-            {filter}, 
-            asset, 
-            SUM(CASE WHEN action = 'BUY' THEN amount ELSE -amount END) AS amount_holdings
-        FROM asset_transaction
-        GROUP BY {filter}, asset
-    ),
-    current_values AS (
-        SELECT 
-            a.{filter}, 
-            a.asset, 
-            a.amount_holdings, 
-            c.current_price, 
-            a.amount_holdings * c.current_price AS allocation
-        FROM asset_summary a
-        JOIN current_prices c ON a.asset = c.asset
-    )
-    SELECT 
-        {filter}, 
-        SUM(allocation) AS total_allocation
-    FROM current_values
-    GROUP BY {filter}
-    ORDER BY total_allocation DESC;
+ADD_NEW_TRANSACTION = """
+    INSERT INTO Asset_Transaction (Date, Time_UTC_, Asset, Action, Price, Amount, Cost, Fee, Fee_Cost, Fee_Coin, Currency, Type, Platform, Portfolio)
+    VALUES (:Date, :Time_UTC_, :Asset, :Action, :Price, :Amount, :Cost, :Fee, :Fee_Cost, :Fee_Coin, :Currency, :Type, :Platform, :Portfolio)
+"""
+
+GET_ASSETS_BY ="""
+WITH holdings_by_allocation AS (
+    SELECT  
+        Asset,
+        {filter},
+        SUM(CASE WHEN Action = 'BUY' THEN Amount ELSE -Amount END) AS Amount_Holdings
+    FROM Asset_Transaction
+    GROUP BY {filter}, Asset
+)
+SELECT h.Asset, h.{filter}, h.Amount_Holdings, h.Amount_Holdings * c.Current_Price AS Balance
+FROM holdings_by_allocation h
+JOIN Current_prices c ON h.Asset = c.Asset
+WHERE h.Amount_Holdings > 0
 """
 
 GET_PORTFOLIO_LATEST_DATA = """
     SELECT p.*
-    FROM portfolio p
+    FROM Portfolio p
     JOIN (
-        SELECT portfolio, MAX(date) AS max_date
-        FROM portfolio
-        GROUP BY portfolio
-    ) latest ON p.portfolio = latest.portfolio AND p.date = latest.max_date;
-"""
-GET_HISTORY_BY_PORTFOLIO = """
-    SELECT date as Date, balance AS Value
-    FROM portfolio
-    WHERE portfolio = :portfolio
-    ORDER BY date;
+        SELECT Portfolio, MAX(Date) AS max_date
+        FROM Portfolio
+        GROUP BY Portfolio
+    ) latest ON p.Portfolio = latest.Portfolio AND p.Date = latest.max_date;
 """
 
-GET_HISTORY_OVERVIEW = """
-    SELECT date as Date, SUM(balance) AS Value
-    FROM portfolio
-    GROUP BY date
-    ORDER BY date;
+GET_PORTFOLIO_HISTORY_OVERVIEW = """
+    SELECT Date, SUM(Balance) AS total_balance
+    FROM Portfolio
+    WHERE Date != 0
+    GROUP BY Date
+    ORDER BY Date;
 """
 
-UPDATE_TRANSACTIONS_PORTFOLIO = """
-    UPDATE asset_transaction
-    SET Portfolio = :Portfolio
-    WHERE Date = :Date and Time_UTC_ = :Time_UTC_ and Asset = :Asset
+GET_PORTFOLIO_HISTORY = "SELECT * FROM Portfolio WHERE Portfolio = :Portfolio AND Date != 0 ORDER BY Date"
+
+
+GET_PORTFOLIOS_LIST = "SELECT DISTINCT Portfolio FROM Portfolio"
+
+GET_ALL_TRANSACTIONS = "SELECT * FROM Asset_Transaction"
+
+GET_ALL_ASSETS = """
+    SELECT Asset,Amount,Total_Invested, Current_Price, Balance, Average_Buy_Price,Realised_Profit,Unrealised_Profit,Total_Profit 
+    FROM Asset WHERE Amount > 0
 """
 
-
-GET_PORTFOLIOS_LIST = "SELECT DISTINCT portfolio FROM portfolio"
-
-GET_ALL_TRANSACTIONS = "SELECT * FROM asset_transaction"
-
-GET_ASSETS = "SELECT * FROM asset"
+GET_ASSETS_BY_PORTFOLIO = """
+    SELECT a.Asset,a.Amount,a.Total_Invested, a.Current_Price,a.Balance, a.Average_Buy_Price,a.Realised_Profit,a.Unrealised_Profit,a.Total_Profit
+    FROM Asset a
+    JOIN Asset_Transaction ON a.Asset = Asset_Transaction.Asset
+    WHERE Asset_Transaction.Portfolio = :Portfolio AND a.Amount > 0
+    GROUP BY a.Asset
+"""
 
 GET_HOLDINGS_DATA = """
     WITH asset_summary AS (
         SELECT
             Portfolio,
             Asset,
-            SUM(CASE WHEN Action = 'BUY' THEN Amount ELSE -Amount END) AS amount_holdings,
-            SUM(CASE WHEN Action = 'BUY' THEN Cost ELSE 0 END) AS total_invested,
-            SUM(CASE WHEN Action = 'SELL' THEN (Price * Amount - Fee_Cost) ELSE 0 END) AS realised_profit
-        FROM
-            asset_transaction
-        WHERE Portfolio = :portfolio
-        GROUP BY
-            Portfolio,Asset   
+            -- Total amount holding (buys - sells)
+            SUM(CASE WHEN Action = 'BUY' THEN Amount ELSE -Amount END) AS Amount_Holdings,
+            
+            -- Total cost of buys
+            SUM(CASE WHEN Action = 'BUY' THEN Cost ELSE 0 END) AS Total_Invested,
+            
+            -- Realized profit from sells (selling price - fees)
+            SUM(CASE WHEN Action = 'SELL' THEN (Price * Amount - Fee_Cost) ELSE 0 END) AS Realised_Profit
+        FROM Asset_Transaction
+        WHERE Portfolio = :Portfolio
+        GROUP BY Portfolio, Asset
+        HAVING Amount_Holdings > 0
+    ),
+    average_buy_price AS (
+        -- Calculate average buy price per portfolio and asset
+        SELECT
+            Portfolio,
+            Asset,
+            CASE 
+                WHEN SUM(CASE WHEN Action = 'BUY' THEN Amount ELSE 0 END) > 0
+                THEN SUM(CASE WHEN Action = 'BUY' THEN Amount * Price ELSE 0 END) / 
+                     SUM(CASE WHEN Action = 'BUY' THEN Amount ELSE 0 END)
+                ELSE 0
+            END AS Average_Buy_Price
+        FROM Asset_Transaction
+        WHERE Portfolio = :Portfolio
+        GROUP BY Portfolio, Asset
+    ),
+    portfolio_total AS (
+        SELECT
+            Portfolio,
+            SUM(Amount_Holdings * cp.Current_Price) as Total_Balance
+        FROM asset_summary a
+        JOIN Current_prices cp ON a.Asset = cp.Asset
+        GROUP BY Portfolio
     )
     SELECT
-        a.Asset,
-        cp.Current_Price,
-        a.amount_holdings AS Amount,
-        a.amount_holdings * cp.current_price AS Balance,
-        a.total_invested,
-        a.total_invested / a.amount_holdings AS Average_Buy_Price,
-        (a.amount_holdings * cp.current_price) - a.total_invested AS Total_Profit,
-        a.realised_profit,
-        ((a.amount_holdings * cp.current_price) - a.total_invested) - a.realised_profit AS Unrealised_Profit
-    FROM
-        asset_summary a
-    JOIN
-        current_prices cp
-    ON
-        a.Asset = cp.Asset
+        s.Asset,
+        cp.Current_Price,                                           -- Current price
+        s.Amount_Holdings AS Amount,                                -- Quantity holding
+        s.Amount_Holdings * cp.Current_Price AS Balance,           -- Current value
+        s.Total_Invested,                                         -- Total cost invested
+        a.Average_Buy_Price,                                      -- Average buy price
+        s.Realised_Profit,                                       -- Realized profit
+        (s.Amount_Holdings * cp.Current_Price) - s.Total_Invested AS Unrealised_Profit,  -- Unrealized profit
+        ((s.Amount_Holdings * cp.Current_Price) - s.Total_Invested) + s.Realised_Profit AS Total_Profit,  -- Total profit
+        ROUND((s.Amount_Holdings * cp.Current_Price) / NULLIF(pt.Total_Balance, 0) * 100, 2) AS Allocation  -- Allocation percentage
+    FROM asset_summary s
+    JOIN average_buy_price a ON s.Asset = a.Asset AND s.Portfolio = a.Portfolio
+    JOIN Current_prices cp ON s.Asset = cp.Asset
+    JOIN portfolio_total pt ON s.Portfolio = pt.Portfolio
+    ORDER BY Balance DESC;
 """
 
 
 GET_TRANSACTIONS_BY_PORTFOLIO = """
     SELECT * 
-    FROM asset_transaction
+    FROM Asset_Transaction
     WHERE Portfolio = ?
 """
 
 COUNT_ASSETS ="""
-SELECT COUNT(*) FROM asset WHERE Asset = :Asset
-"""
-
-COUNT_ASSET_PRICE ="""
-    SELECT COUNT(*) FROM current_prices WHERE Asset = :Asset
+SELECT COUNT(*) FROM Asset WHERE Asset = :Asset
 """
 
 INSERT_ASSET_PRICE ="""
-    INSERT INTO current_prices (Asset,current_price)
-    VALUES (:asset, :current_price)
+    INSERT INTO Current_prices (Asset,Current_Price)
+    VALUES (:Asset, :Current_Price)
 """
 
 UPDATE_ASSETS ="""
-    UPDATE asset
-    SET Amount = :amount, Balance = :balance, Total_Invested = :total_invested, Average_Buy_Price = :avg_buy_price,
-        Realised_Profit = :realised_profit, Unrealised_Profit = :unrealised_profit, Total_Profit = :total_profit
-    WHERE Asset = :asset
+    UPDATE Asset
+    SET Asset= :Asset ,Amount= :Amount,Total_Invested= :Total_Invested, Current_Price= :Current_Price,Balance= :Balance, Average_Buy_Price= :Average_Buy_Price,Realised_Profit= :Realised_Profit,Unrealised_Profit= :Unrealised_Profit,Total_Profit= :Total_Profit
+    WHERE Asset = :Asset
 """
 
 INSERT_ASSETS ="""
-    INSERT INTO asset (Asset, Current_Price, Amount, Balance, Total_Invested, Average_Buy_Price,
-        Realised_Profit, Unrealised_Profit, Total_Profit)
-    VALUES (:asset, :current_price, :amount, :balance, :total_invested, :avg_buy_price, :realised_profit, :unrealised_profit, :total_profit)
+    INSERT INTO Asset (Asset,Amount,Total_Invested, Current_Price,Balance, Average_Buy_Price,Realised_Profit,Unrealised_Profit,Total_Profit)
+    VALUES (:Asset,:Amount,:Total_Invested, :Current_Price,:Balance, :Average_Buy_Price,:Realised_Profit,:Unrealised_Profit,:Total_Profit)
 """
 
-CALCULATE_ASSET_METRICS = """
+CALCULATE_HOLDINGS_TABLE = """
 WITH asset_summary AS (
     SELECT
         Asset,
-        SUM(CASE WHEN Action = 'BUY' THEN Amount ELSE -Amount END) AS amount,
-        SUM(CASE WHEN Action = 'SELL' THEN Amount * Price - Fee_Cost ELSE 0 END) AS realised_profit,
-        SUM(CASE WHEN Action = 'BUY' THEN Cost ELSE -(Amount * Price - Fee_Cost) END) AS total_invested
-    FROM asset_transaction
+        SUM(CASE WHEN Action = 'BUY' THEN Amount ELSE -Amount END) AS Amount_Holdings,
+        SUM(CASE WHEN Action = 'BUY' THEN Cost ELSE 0 END) AS Total_Invested,
+        SUM(CASE WHEN Action = 'SELL' THEN Amount * Price - Fee_Cost ELSE 0 END) AS Realised_Profit
+    FROM Asset_Transaction
     GROUP BY Asset
 ),
-average_buy_price AS (
+asset_metrics AS (
     SELECT
-        Asset,
-        CASE 
-            WHEN SUM(CASE WHEN Action = 'BUY' THEN Amount ELSE 0 END) > 0
-            THEN SUM(CASE WHEN Action = 'BUY' THEN Amount * Price ELSE 0 END) / SUM(CASE WHEN Action = 'BUY' THEN Amount ELSE 0 END)
-            ELSE 0
-        END AS average_buy_price
-    FROM asset_transaction
-    GROUP BY Asset
-),
-final_metrics AS (
-    SELECT
-        s.Asset,
-        c.current_price,
-        s.amount,
-        s.amount * c.current_price AS balance,
-        s.total_invested,
-        a.average_buy_price,
-        s.realised_profit,
-        (s.amount * c.current_price) - (s.total_invested) AS unrealised_profit,
-        ((s.amount * c.current_price) - (s.total_invested)) + s.realised_profit AS total_profit
-    FROM asset_summary s
-    JOIN average_buy_price a ON s.Asset = a.Asset
-    JOIN current_prices c ON s.Asset = c.Asset
+        a.Asset,
+        a.Amount_Holdings,
+        a.Total_Invested,
+        a.Realised_Profit,
+        c.Current_Price,
+        a.Total_Invested / NULLIF(a.Amount_Holdings, 0) AS Average_Buy_Price,
+        a.Amount_Holdings * c.Current_Price AS Balance,
+        (a.Amount_Holdings * c.Current_Price) - a.Total_Invested AS Unrealised_Profit
+    FROM asset_summary a
+    JOIN Current_prices c ON a.Asset = c.Asset
 )
-SELECT * FROM final_metrics;
+SELECT
+    Asset,
+    Amount_Holdings AS Amount,
+    Total_Invested,
+    Current_Price,
+    Balance,
+    Average_Buy_Price,
+    Realised_Profit,
+    Unrealised_Profit,
+    (Realised_Profit + Unrealised_Profit) AS Total_Profit
+FROM asset_metrics;
 """
 
 SAVE_PORTFOLIO_METRICS = """
-WITH asset_summary AS (
+WITH transaction_months AS (
+    SELECT DISTINCT
+        Portfolio,
+        strftime('%Y-%m', Date) AS transaction_month
+    FROM Asset_Transaction
+),
+filtered_transactions AS (
     SELECT
-        portfolio,
-        asset,
-        SUM(CASE WHEN action = 'BUY' THEN amount ELSE -amount END) AS amount_holdings,
+        at.*,
+        tm.transaction_month
+    FROM Asset_Transaction at
+    JOIN transaction_months tm
+        ON at.Portfolio = tm.Portfolio
+        AND strftime('%Y-%m', at.Date) <= tm.transaction_month
+),
+asset_summary AS (
+    SELECT
+        Portfolio,
+        Asset,
+        transaction_month,
+        SUM(CASE WHEN action = 'BUY' THEN Amount ELSE -Amount END) AS Amount_Holdings,
         SUM(CASE WHEN action = 'BUY' THEN cost ELSE 0 END) AS total_buy_cost,
-        SUM(CASE WHEN action = 'SELL' THEN amount * price - fee_cost ELSE 0 END) AS realised_profit
-    FROM asset_transaction
-    GROUP BY portfolio, asset
+        SUM(CASE WHEN action = 'SELL' THEN Amount * price - fee_cost ELSE 0 END) AS Realised_Profit
+    FROM filtered_transactions
+    GROUP BY Portfolio, Asset, transaction_month
 ),
 current_values AS (
     SELECT
-        a.portfolio,
-        a.asset,
-        a.amount_holdings,
+        a.Portfolio,
+        a.Asset,
+        a.transaction_month,
+        a.Amount_Holdings,
         a.total_buy_cost,
-        a.realised_profit,
-        c.current_price,
-        a.amount_holdings * c.current_price AS balance
+        a.Realised_Profit,
+        c.Current_Price,
+        a.Amount_Holdings * c.Current_Price AS Balance
     FROM asset_summary a
-    JOIN current_prices c ON a.asset = c.asset
+    JOIN Current_prices c ON a.Asset = c.Asset
 ),
 final_metrics AS (
     SELECT
-        portfolio,
-        SUM(total_buy_cost - realised_profit) AS total_invested,
-        SUM(realised_profit) AS realised_profit,
-        SUM(balance - (total_buy_cost - realised_profit)) AS unrealised_profit,
-        SUM(balance) AS balance
+        Portfolio,
+        transaction_month,
+        SUM(total_buy_cost - Realised_Profit) AS Total_Invested,
+        SUM(Realised_Profit) AS Realised_Profit,
+        SUM(Balance - (total_buy_cost - Realised_Profit)) AS Unrealised_Profit,
+        SUM(Balance) AS Balance
     FROM current_values
-    GROUP BY portfolio
+    GROUP BY Portfolio, transaction_month
 )
-INSERT OR REPLACE INTO portfolio (portfolio, total_invested, realised_profit, unrealised_profit, balance, date)
+INSERT OR REPLACE INTO Portfolio (Portfolio, Total_Invested, Realised_Profit, Unrealised_Profit, Balance, Date)
 SELECT 
-    portfolio, 
-    total_invested, 
-    realised_profit, 
-    unrealised_profit, 
-    balance, --ABS(RANDOM() % 90001 + balance) AS random_balance
-    DATE('now') --DATE('now', printf('-%d days', ABS(RANDOM() % (365 * 5)))) AS random_date
-FROM final_metrics;
+    fm.Portfolio, 
+    fm.Total_Invested, 
+    fm.Realised_Profit, 
+    fm.Unrealised_Profit, 
+    fm.Balance,
+    fm.transaction_month || '-01' AS Date -- Use the first day of the month as the Date
+FROM final_metrics fm;
 """
